@@ -42,7 +42,8 @@ func InitialiseDB() *sql.DB {
         content TEXT NOT NULL,
         post_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         likes INTEGER DEFAULT 0,
-        dislikes INTEGER DEFAULT 0,
+        dislikes INTEGER DEFAULT 0,,
+		comments INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id)
     );
     CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
@@ -108,6 +109,22 @@ func InitialiseDB() *sql.DB {
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+	`)
+	if err != nil {
+		fmt.Errorf("Failed to create sessions table: %v", err)
+		return nil
+	}
+
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS reaction (
+        user_id INTEGER,
+        post_id INTEGER,
+        like INTEGER,
+		dislike INTEGER,
+        PRIMARY KEY (user_id, post_id),
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+    );
 	`)
 	if err != nil {
 		fmt.Errorf("Failed to create sessions table: %v", err)

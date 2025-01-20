@@ -73,5 +73,16 @@ func InitialiseDB() *sql.DB {
 		return nil
 	}
 
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL
+    );
+	`)
+	if err != nil {
+		fmt.Errorf("Failed to create categories table: %v", err)
+		return nil
+	}
+
 	return db
 }

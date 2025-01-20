@@ -34,5 +34,24 @@ func InitialiseDB() *sql.DB {
 		return nil
 	}
 
+	_, err = db.Exec(`
+        CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        post_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        likes INTEGER DEFAULT 0,
+        dislikes INTEGER DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_post_at ON posts(post_at);
+    `)
+	if err != nil {
+		fmt.Errorf("Failed to create posts table: %v", err)
+		return nil
+	}
+
 	return db
 }

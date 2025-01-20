@@ -30,7 +30,7 @@ func InitialiseDB() *sql.DB {
     	CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     `)
 	if err != nil {
-		fmt.Errorf("Failed to create users table: %v", err)
+		log.Printf("Failed to create users table: %v", err)
 		return nil
 	}
 
@@ -42,7 +42,7 @@ func InitialiseDB() *sql.DB {
         content TEXT NOT NULL,
         post_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         likes INTEGER DEFAULT 0,
-        dislikes INTEGER DEFAULT 0,,
+		dislikes INTEGER DEFAULT 0,
 		comments INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id)
     );
@@ -50,7 +50,7 @@ func InitialiseDB() *sql.DB {
     CREATE INDEX IF NOT EXISTS idx_posts_post_at ON posts(post_at);
     `)
 	if err != nil {
-		fmt.Errorf("Failed to create posts table: %v", err)
+		log.Printf("Failed to create posts table: %v", err)
 		return nil
 	}
 
@@ -70,7 +70,7 @@ func InitialiseDB() *sql.DB {
     CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 	`)
 	if err != nil {
-		fmt.Errorf("Failed to create comments table: %v", err)
+		log.Printf("Failed to create comments table: %v", err)
 		return nil
 	}
 
@@ -81,7 +81,7 @@ func InitialiseDB() *sql.DB {
     );
 	`)
 	if err != nil {
-		fmt.Errorf("Failed to create categories table: %v", err)
+		log.Printf("Failed to create categories table: %v", err)
 		return nil
 	}
 
@@ -96,7 +96,7 @@ func InitialiseDB() *sql.DB {
     CREATE INDEX IF NOT EXISTS idx_post_categories_category_id ON post_categories(category_id);
 	`)
 	if err != nil {
-		fmt.Errorf("Failed to create post_categories table: %v", err)
+		log.Printf("Failed to create post_categories table: %v", err)
 		return nil
 	}
 
@@ -111,7 +111,7 @@ func InitialiseDB() *sql.DB {
     CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 	`)
 	if err != nil {
-		fmt.Errorf("Failed to create sessions table: %v", err)
+		log.Printf("Failed to create sessions table: %v", err)
 		return nil
 	}
 

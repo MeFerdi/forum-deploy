@@ -84,5 +84,20 @@ func InitialiseDB() *sql.DB {
 		return nil
 	}
 
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS post_categories (
+        post_id INTEGER,
+        category_id INTEGER,
+        PRIMARY KEY (post_id, category_id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_post_categories_category_id ON post_categories(category_id);
+	`)
+	if err != nil {
+		fmt.Errorf("Failed to create post_categories table: %v", err)
+		return nil
+	}
+
 	return db
 }

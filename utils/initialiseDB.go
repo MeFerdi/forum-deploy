@@ -99,5 +99,20 @@ func InitialiseDB() *sql.DB {
 		return nil
 	}
 
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER,
+        expires_at DATETIME,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+	`)
+	if err != nil {
+		fmt.Errorf("Failed to create sessions table: %v", err)
+		return nil
+	}
+
 	return db
 }

@@ -19,3 +19,13 @@ type Post struct {
 	Dislikes int
 	Comments int
 }
+
+type Comment struct {
+	ID          int
+	PostID      int
+	UserID      int
+	Content     string
+	CommentTime time.Time
+	Likes       int
+	Dislikes    int
+}

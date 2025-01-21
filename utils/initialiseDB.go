@@ -11,7 +11,7 @@ import (
 var GlobalDB *sql.DB
 
 func InitialiseDB() *sql.DB {
-	db, err := sql.Open("sqlite3", "./database/forum.db")
+	db, err := sql.Open("sqlite3", "./forum.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -103,6 +103,7 @@ func InitialiseDB() *sql.DB {
 	_, err = db.Exec(`
 	CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
+		token TEXT,
         user_id INTEGER,
         expires_at DATETIME,
         FOREIGN KEY (user_id) REFERENCES users(id)

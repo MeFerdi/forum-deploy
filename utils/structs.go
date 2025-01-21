@@ -34,3 +34,9 @@ type Category struct {
 	ID   int
 	Name string
 }
+
+type Session struct {
+	ID        string
+	UserID    int
+	ExpiresAt time.Time
+}

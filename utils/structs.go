@@ -29,3 +29,8 @@ type Comment struct {
 	Likes       int
 	Dislikes    int
 }
+
+type Category struct {
+	ID   int
+	Name string
+}

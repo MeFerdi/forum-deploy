@@ -14,8 +14,10 @@ func main() {
 	if db != nil {
 		defer db.Close()
 	}
-	http.HandleFunc("/", controllers.HomeHandler)
-	http.HandleFunc("/post", controllers.PostHandler)
+	http.Handle("/", &controllers.PostHandler{})
+    postHandler := controllers.NewPostHandler()
+    http.Handle("/post/", postHandler)
+	http.Handle("/post", postHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	fmt.Println("Server opened at port 3000...http://localhost:3000/")
 

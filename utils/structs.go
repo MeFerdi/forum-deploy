@@ -14,10 +14,12 @@ type Post struct {
 	UserID   int
 	Title    string
 	Content  string
-	PostTime time.Time
+	ImagePath string
+	PostTime string
 	Likes    int
 	Dislikes int
 	Comments int
+	
 }
 
 type Comment struct {

@@ -40,6 +40,7 @@ func InitialiseDB() *sql.DB {
         user_id INTEGER,
         title TEXT NOT NULL,
         content TEXT NOT NULL,
+		imagepath TEXT NOT NULL,
         post_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         likes INTEGER DEFAULT 0,
 		dislikes INTEGER DEFAULT 0,

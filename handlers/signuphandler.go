@@ -60,5 +60,12 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 			errors.PasswordError = "Passwords do not match"
 			hasError = true
 		}
+
+		if hasError {
+			data.Errors = errors
+			tmpl := template.Must(template.ParseFiles("static/templates/signup.html"))
+			tmpl.Execute(w, data)
+			return
+		}
 	}
 }

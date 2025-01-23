@@ -25,3 +25,7 @@ func ValidateEmail(email string) bool {
 func ValidateUsername(username string) bool {
 	return len(username) >= 3 && len(username) <= 30
 }
+
+func ValidatePassword(password string) bool {
+	return len(password) >= 8
+}

@@ -63,7 +63,7 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 
 		if hasError {
 			data.Errors = errors
-			tmpl := template.Must(template.ParseFiles("static/templates/signup.html"))
+			tmpl := template.Must(template.ParseFiles("templates/signup.html"))
 			tmpl.Execute(w, data)
 			return
 		}
@@ -73,7 +73,7 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
         if err != nil {
             errors.GeneralError = "Internal Server Error"
             data.Errors = errors
-            tmpl := template.Must(template.ParseFiles("static/templates/signup.html"))
+            tmpl := template.Must(template.ParseFiles("templates/signup.html"))
             tmpl.Execute(w, data)
             return
         }
@@ -82,5 +82,16 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
             INSERT INTO users (email, username, password, name)
             VALUES (?, ?, ?, ?)
         `, data.Email, data.UserName, hashedPassword)
+
+		if err != nil {
+            errors.GeneralError = "Username or email already exists"
+            data.Errors = errors
+            tmpl := template.Must(template.ParseFiles("templates/signup.html"))
+            tmpl.Execute(w, data)
+            return
+        }
 	}
+	
+	http.Redirect(w, r, "/signin", http.StatusSeeOther)
+
 }

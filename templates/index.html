@@ -7,6 +7,7 @@
     <title>SocialApp</title>
     <link rel="stylesheet" href="../static/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
 </head>
 
 <body>
@@ -30,6 +31,7 @@
         <div class="posts-container">
             {{range .}}
             <div class="post-card">
+                <a href="/post?id={{.ID}}" class="post-link"></a>
                 <div class="post-header">
                     <div class="avatar"></div>
                     <div class="post-info">
@@ -44,15 +46,15 @@
                     {{end}}
                 </div>
                 <div class="post-footer">
-                    <button class="action-btn like-btn">
+                    <button class="action-btn like-btn" onclick="event.stopPropagation();">
                         <i class="fas fa-heart"></i>
                         <span class="count">{{.Likes}}</span>
                     </button>
-                    <button class="action-btn dislike-btn">
+                    <button class="action-btn dislike-btn" onclick="event.stopPropagation();">
                         <i class="fas fa-thumbs-down"></i>
                         <span class="count">{{.Dislikes}}</span>
                     </button>
-                    <button class="action-btn comment-btn">
+                    <button class="action-btn comment-btn" onclick="event.stopPropagation();">
                         <i class="fas fa-comment"></i>
                         <span class="count">{{.Comments}}</span>
                     </button>

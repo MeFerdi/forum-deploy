@@ -22,6 +22,7 @@ func main() {
 
 	// Setup routes
 	http.HandleFunc("/signup", handlers.SignUpHandler)
+	http.HandleFunc("/signin", handlers.SignInHandler)
 	// Add other route handlers...
 
 	// Start server

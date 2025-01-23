@@ -17,7 +17,7 @@ type SignInData struct {
 }
 
 func SignInHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("template/signin.html"))
+	tmpl := template.Must(template.ParseFiles("templates/signin.html"))
 
 	if r.Method == "GET" {
 		tmpl.Execute(w, nil)

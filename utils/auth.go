@@ -21,3 +21,7 @@ func ValidateEmail(email string) bool {
 	match, _ := regexp.MatchString(pattern, email)
 	return match
 }
+
+func ValidateUsername(username string) bool {
+	return len(username) >= 3 && len(username) <= 30
+}

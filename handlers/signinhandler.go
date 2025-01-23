@@ -3,6 +3,8 @@ package handlers
 import (
 	"html/template"
 	"net/http"
+
+	"forum/utils"
 )
 
 type SignInData struct {
@@ -41,5 +43,12 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 			tmpl.Execute(w, data)
 			return
 		}
+
+		var user utils.User
+		err := GlobalDB.QueryRow(`
+			SELECT id, password
+			FROM users
+			WHERE username = ?
+		`, username).Scan(&user.ID, &user.Password)
 	}
 }

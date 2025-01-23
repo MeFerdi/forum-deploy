@@ -67,5 +67,15 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 			tmpl.Execute(w, data)
 			return
 		}
+
+		// Hash password and create user
+        hashedPassword, err := utils.HashPassword(password)
+        if err != nil {
+            errors.GeneralError = "Internal Server Error"
+            data.Errors = errors
+            tmpl := template.Must(template.ParseFiles("static/templates/signup.html"))
+            tmpl.Execute(w, data)
+            return
+        }
 	}
 }

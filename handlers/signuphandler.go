@@ -45,11 +45,18 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		errors := SignUpErrors{}
 		hasError := false
 
+		// Validate email
+		if !utils.ValidateEmail(data.Email) {
+			errors.EmailError = "Invalid email format"
+			hasError = true
+		}
+
 		// Validate username
 		if !utils.ValidateUsername(data.UserName) {
 			errors.UsernameError = "Username must be between 3 and 30 characters"
 			hasError = true
 		}
+
 		password := r.FormValue("password")
 		confirmPassword := r.FormValue("confirm-password")
 
@@ -69,29 +76,29 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Hash password and create user
-        hashedPassword, err := utils.HashPassword(password)
-        if err != nil {
-            errors.GeneralError = "Internal Server Error"
-            data.Errors = errors
-            tmpl := template.Must(template.ParseFiles("templates/signup.html"))
-            tmpl.Execute(w, data)
-            return
-        }
+		hashedPassword, err := utils.HashPassword(password)
+		if err != nil {
+			errors.GeneralError = "Internal Server Error"
+			data.Errors = errors
+			tmpl := template.Must(template.ParseFiles("templates/signup.html"))
+			tmpl.Execute(w, data)
+			return
+		}
+
+		id := utils.GenerateId()
 
 		_, err = GlobalDB.Exec(`
-            INSERT INTO users (email, username, password, name)
+            INSERT INTO users (id, email, username, password)
             VALUES (?, ?, ?, ?)
-        `, data.Email, data.UserName, hashedPassword)
-
+        `, id, data.Email, data.UserName, hashedPassword)
 		if err != nil {
-            errors.GeneralError = "Username or email already exists"
-            data.Errors = errors
-            tmpl := template.Must(template.ParseFiles("templates/signup.html"))
-            tmpl.Execute(w, data)
-            return
-        }
+			errors.GeneralError = "Username or email already exists"
+			data.Errors = errors
+			tmpl := template.Must(template.ParseFiles("templates/signup.html"))
+			tmpl.Execute(w, data)
+			return
+		}
 	}
-	
-	http.Redirect(w, r, "/signin", http.StatusSeeOther)
 
+	http.Redirect(w, r, "/signin", http.StatusSeeOther)
 }

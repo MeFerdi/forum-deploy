@@ -16,16 +16,8 @@
         {{end}}
         <form action="/signup" method="POST">
             <div class="input-group">
-                <label for="name">Name</label>
-                <input type="text" name="name" id="name" value="{{.Name}}" {{if .Errors.NameError}}class="error"{{end}}>
-                {{if .Errors.NameError}}
-                <div class="error-message">{{.Errors.NameError}}</div>
-                {{end}}
-            </div>
-
-            <div class="input-group">
                 <label for="username">Username</label>
-                <input type="text" name="username" id="username" value="{{.Username}}" {{if .Errors.UsernameError}}class="error"{{end}}>
+                <input type="text" name="username" id="username" value="{{.UserName}}" {{if .Errors.UsernameError}}class="error"{{end}}>
                 {{if .Errors.UsernameError}}
                 <div class="error-message">{{.Errors.UsernameError}}</div>
                 {{end}}
@@ -48,8 +40,8 @@
             </div>
 
             <div class="input-group">
-                <label for="confirm_password">Confirm Password</label>
-                <input type="password" name="confirm_password" id="confirm_password" {{if .Errors.PasswordError}}class="error"{{end}}>
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" name="confirm-password" id="confirm-password" {{if .Errors.PasswordError}}class="error"{{end}}>
             </div>
 
             <div class="show-password-group">

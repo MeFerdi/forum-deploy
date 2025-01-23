@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"html/template"
 	"net/http"
 
@@ -50,5 +51,16 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 			FROM users
 			WHERE username = ?
 		`, username).Scan(&user.ID, &user.Password)
+		// Handle database errors
+		if err != nil {
+			if err == sql.ErrNoRows {
+				data.GeneralError = "Invalid username or password"
+			} else {
+				data.GeneralError = "An error occurred. Please try again later."
+			}
+			data.Username = username // Preserve the username input
+			tmpl.Execute(w, data)
+			return
+		}
 	}
 }

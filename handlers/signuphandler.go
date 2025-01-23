@@ -45,15 +45,19 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		errors := SignUpErrors{}
 		hasError := false
 
-		// Validate name
-		if data.UserName == "" {
-			errors.UsernameError = "UserName is required"
-			hasError = true
-		}
-
 		// Validate username
 		if !utils.ValidateUsername(data.UserName) {
 			errors.UsernameError = "Username must be between 3 and 30 characters"
+			hasError = true
+		}
+		password := r.FormValue("password")
+		confirmPassword := r.FormValue("confirm-password")
+
+		if !utils.ValidatePassword(password) {
+			errors.PasswordError = "Password must be at least 8 characters"
+			hasError = true
+		} else if password != confirmPassword {
+			errors.PasswordError = "Passwords do not match"
 			hasError = true
 		}
 	}

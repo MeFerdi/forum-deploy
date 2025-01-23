@@ -77,5 +77,10 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
             tmpl.Execute(w, data)
             return
         }
+
+		_, err = GlobalDB.Exec(`
+            INSERT INTO users (email, username, password, name)
+            VALUES (?, ?, ?, ?)
+        `, data.Email, data.UserName, hashedPassword)
 	}
 }

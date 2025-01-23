@@ -6,6 +6,15 @@ import (
 	"net/http"
 )
 
+
+type SignUpErrors struct {
+    NameError     string
+    EmailError    string
+    UsernameError string
+    PasswordError string
+    GeneralError  string
+}
+
 type SignUpData struct {
 	Errors   SignUpErrors
 	Name     string

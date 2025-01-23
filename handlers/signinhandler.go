@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"html/template"
 	"net/http"
+	"time"
 
 	"forum/utils"
 )
@@ -71,5 +72,25 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Create session
+		sessionToken, err := utils.CreateSession(GlobalDB, user.ID)
+		if err != nil {
+			data.GeneralError = "An error occurred. Please try again later."
+			data.Username = username // Preserve the username input
+			tmpl.Execute(w, data)
+			return
+		}
+
+		// Set session cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_token",
+			Value:    sessionToken,
+			Expires:  time.Now().Add(24 * time.Hour),
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteDefaultMode,
+		})
+
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }

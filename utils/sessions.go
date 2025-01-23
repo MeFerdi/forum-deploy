@@ -14,7 +14,7 @@ func GenerateSessionToken() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-func CreateSessions(db *sql.DB, userID string) (string, error) {
+func CreateSession(db *sql.DB, userID string) (string, error) {
 	SessionToken := GenerateSessionToken()
 	ExpiresAt := time.Now().Add(24 * time.Hour)
 	_, err := GlobalDB.Exec(`

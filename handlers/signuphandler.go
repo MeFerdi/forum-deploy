@@ -5,7 +5,10 @@ import (
 	"html/template"
 	"net/http"
 
-	_ "github.com/mattn/go-sqlite3")
+	"forum/utils"
+
+	_ "github.com/mattn/go-sqlite3"
+)
 
 type SignUpErrors struct {
 	NameError     string
@@ -45,6 +48,12 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		// Validate name
 		if data.UserName == "" {
 			errors.UsernameError = "UserName is required"
+			hasError = true
+		}
+
+		// Validate username
+		if !utils.ValidateUsername(data.UserName) {
+			errors.UsernameError = "Username must be between 3 and 30 characters"
 			hasError = true
 		}
 	}

@@ -62,5 +62,14 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 			tmpl.Execute(w, data)
 			return
 		}
+
+		// Verify password
+		if !utils.CheckPasswordsHash(password, user.Password) {
+			data.GeneralError = "Invalid username or password"
+			data.Username = username // Preserve the username input
+			tmpl.Execute(w, data)
+			return
+		}
+
 	}
 }

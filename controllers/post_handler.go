@@ -21,7 +21,7 @@ type PostHandler struct {
 
 func NewPostHandler() *PostHandler {
 	return &PostHandler{
-		imageHandler: NewImageHandler(), // Initialize ImageHandler
+		imageHandler: NewImageHandler(),
 	}
 }
 
@@ -46,7 +46,6 @@ func (ph *PostHandler) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Update ServeHTTP method
 func (ph *PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/create":
@@ -66,37 +65,32 @@ func (ph *PostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "/":
 		if r.Method == http.MethodGet {
-			// Check if id parameter exists and get its value
 			postIDStr := r.URL.Query().Get("id")
-			
-			// If id parameter exists (non-empty), handle single post
+
 			if postIDStr != "" {
 				postIDStr = strings.TrimSpace(postIDStr)
-				
-				// Return error if ID param is empty after trim
+
 				if postIDStr == "" {
 					utils.RenderErrorPage(w, http.StatusNotFound, "Post ID cannot be empty")
 					return
 				}
-	
-				// Validate post ID format and value
+
 				postID, err := strconv.Atoi(postIDStr)
 				if err != nil || postID <= 0 {
 					utils.RenderErrorPage(w, http.StatusNotFound, "Invalid post ID")
 					return
 				}
-	
+
 				// Check if post exists
 				var exists bool
 				if err := utils.GlobalDB.QueryRow("SELECT EXISTS(SELECT 1 FROM posts WHERE id = ?)", postID).Scan(&exists); err != nil || !exists {
 					utils.RenderErrorPage(w, http.StatusNotFound, "Post not found")
 					return
 				}
-	
+
 				ph.handleSinglePost(w, r)
 				return
 			}
-			// Handle homepage if no id parameter
 			ph.handleGetPosts(w, r)
 		}
 	case "/comment":
@@ -141,30 +135,30 @@ type createPostData struct {
 }
 
 func (ph *PostHandler) displayCreateForm(w http.ResponseWriter, r *http.Request) {
-    categories, err := ph.getAllCategories()
-    if err != nil {
-        log.Printf("Error getting categories: %v", err)
-        utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
-        return
-    }
+	categories, err := ph.getAllCategories()
+	if err != nil {
+		log.Printf("Error getting categories: %v", err)
+		utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
 
-    userID := r.Context().Value("userID").(string)
-    data := createPostData{
-        Categories:    categories,
-        IsLoggedIn:   userID != "",
-        CurrentUserID: userID,
-    }
+	userID := r.Context().Value("userID").(string)
+	data := createPostData{
+		Categories:    categories,
+		IsLoggedIn:    userID != "",
+		CurrentUserID: userID,
+	}
 
-    tmpl, err := template.ParseFiles("templates/createpost.html")
-    if err != nil {
-        log.Printf("Error parsing template: %v", err)
-        utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrTemplateLoad)
-        return
-    }
+	tmpl, err := template.ParseFiles("templates/createpost.html")
+	if err != nil {
+		log.Printf("Error parsing template: %v", err)
+		utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrTemplateLoad)
+		return
+	}
 
-    if err := tmpl.Execute(w, data); err != nil {
-        log.Printf("Error executing template: %v", err)
-    }
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }
 
 func (ph *PostHandler) getAllCategories() ([]utils.Category, error) {
@@ -195,9 +189,15 @@ func (ph *PostHandler) handleGetPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	users, err := ph.getAllUsers() // Add this function
+	if err != nil {
+		log.Printf("Error fetching users: %v", err)
+	}
+
 	pageData := utils.PageData{
 		IsLoggedIn: ph.checkAuthStatus(r),
 		Posts:      posts,
+		Users: users,
 	}
 
 	if cookie, err := r.Cookie("session_token"); err == nil {
@@ -218,7 +218,28 @@ func (ph *PostHandler) handleGetPosts(w http.ResponseWriter, r *http.Request) {
 		utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrTemplateExec)
 	}
 }
+func (ph *PostHandler) getAllUsers() ([]utils.User, error) {
+	rows, err := utils.GlobalDB.Query(`
+        SELECT id, username, profile_pic 
+        FROM users 
+        ORDER BY username ASC
+    `)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
+	var users []utils.User
+	for rows.Next() {
+		var user utils.User
+		err := rows.Scan(&user.ID, &user.UserName, &user.ProfilePic)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
 func (ph *PostHandler) getAllPosts() ([]utils.Post, error) {
 	rows, err := utils.GlobalDB.Query(`
         SELECT p.id, p.user_id, p.title, p.content, p.imagepath, 
@@ -274,7 +295,7 @@ func (ph *PostHandler) getAllPosts() ([]utils.Post, error) {
 			post.CategoryName = nil
 		}
 
-		post.PostTime = FormatTimeAgo(postTime.Local())
+		post.PostTime = FormatTimeAgo(postTime)
 
 		postMap[post.ID] = post
 	}
@@ -288,36 +309,35 @@ func (ph *PostHandler) getAllPosts() ([]utils.Post, error) {
 }
 
 func (ph *PostHandler) handleCreatePost(w http.ResponseWriter, r *http.Request) {
-    userID := r.Context().Value("userID").(string)
-    
-    tmpl, err := template.ParseFiles("templates/createpost.html")
-    if err != nil {
-        log.Printf("Error parsing template: %v", err)
-        utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrTemplateLoad)
-        return
-    }
+	userID := r.Context().Value("userID").(string)
 
-    data := createPostData{
-        IsLoggedIn:   true,
-        CurrentUserID: userID,
-    }
+	tmpl, err := template.ParseFiles("templates/createpost.html")
+	if err != nil {
+		log.Printf("Error parsing template: %v", err)
+		utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrTemplateLoad)
+		return
+	}
 
-    if err := r.ParseMultipartForm(10 << 20); err != nil {
-        data.ErrorMessage = "File size too large. Maximum size is 10MB"
+	data := createPostData{
+		IsLoggedIn:    true,
+		CurrentUserID: userID,
+	}
+
+    if err := r.ParseMultipartForm(20 << 20); err != nil {
+        data.ErrorMessage = "File size too large. Maximum size is 20MB"
         tmpl.Execute(w, data)
         return
     }
 
-    // Get form values
-    data.Title = r.FormValue("title")
-    data.Content = r.FormValue("content")
-    data.SelectedCats = r.Form["categories[]"]
+	data.Title = r.FormValue("title")
+	data.Content = r.FormValue("content")
+	data.SelectedCats = r.Form["categories[]"]
 
-    if data.Title == "" || data.Content == "" || len(data.SelectedCats) == 0 {
-        data.ErrorMessage = "Title, content, and at least one category are required"
-        tmpl.Execute(w, data)
-        return
-    }
+	if data.Title == "" || data.Content == "" || len(data.SelectedCats) == 0 {
+		data.ErrorMessage = "Title, content, and at least one category are required"
+		tmpl.Execute(w, data)
+		return
+	}
 
     // Handle image upload
     var imagePath string
@@ -326,55 +346,53 @@ func (ph *PostHandler) handleCreatePost(w http.ResponseWriter, r *http.Request) 
         defer file.Close()
         
         // Check file size
-        if header.Size > 10<<20 { // 10 MB
-            data.ErrorMessage = "Image size must be less than 10MB"
+        if header.Size > 20<<20 { // 20 MB
+            data.ErrorMessage = "Image size must be less than 20MB"
             tmpl.Execute(w, data)
             return
         }
 
-        imagePath, err = ph.imageHandler.ProcessImage(file, header)
-        if err != nil {
-            data.ErrorMessage = "Error processing image: " + err.Error()
-            tmpl.Execute(w, data)
-            return
-        }
-    }
+		imagePath, err = ph.imageHandler.ProcessImage(file, header)
+		if err != nil {
+			data.ErrorMessage = "Error processing image: " + err.Error()
+			tmpl.Execute(w, data)
+			return
+		}
+	}
 
-    // Create post
-    currentTime := time.Now().Format("2006-01-02 15:04:05")
-    stmt, err := utils.GlobalDB.Prepare(`
+	currentTime := time.Now()
+	stmt, err := utils.GlobalDB.Prepare(`
         INSERT INTO posts (user_id, title, content, imagepath, post_at)
         VALUES (?, ?, ?, ?, ?)
     `)
-    if err != nil {
-        data.ErrorMessage = "Error creating post"
-        tmpl.Execute(w, data)
-        return
-    }
-    defer stmt.Close()
+	if err != nil {
+		data.ErrorMessage = "Error creating post"
+		tmpl.Execute(w, data)
+		return
+	}
+	defer stmt.Close()
 
-    result, err := stmt.Exec(userID, data.Title, data.Content, imagePath, currentTime)
-    if err != nil {
-        data.ErrorMessage = "Error saving post"
-        tmpl.Execute(w, data)
-        return
-    }
+	result, err := stmt.Exec(userID, data.Title, data.Content, imagePath, currentTime)
+	if err != nil {
+		data.ErrorMessage = "Error saving post"
+		tmpl.Execute(w, data)
+		return
+	}
 
-    postID, _ := result.LastInsertId()
+	postID, _ := result.LastInsertId()
 
-    // Add categories
-    for _, categoryName := range data.SelectedCats {
-        categoryID, err := getCategoryIDByName(categoryName)
-        if err != nil {
-            continue
-        }
-        utils.GlobalDB.Exec(`
+	for _, categoryName := range data.SelectedCats {
+		categoryID, err := getCategoryIDByName(categoryName)
+		if err != nil {
+			continue
+		}
+		utils.GlobalDB.Exec(`
             INSERT INTO post_categories (post_id, category_id) 
             VALUES (?, ?)
         `, postID, categoryID)
-    }
+	}
 
-    http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func getCategoryIDByName(name string) (int, error) {
@@ -426,7 +444,6 @@ func FormatTimeAgo(t time.Time) string {
 
 func (ph *PostHandler) handleSinglePost(w http.ResponseWriter, r *http.Request) {
 	postIDStr := r.URL.Query().Get("id")
-	fmt.Println(postIDStr)	
 
 	if postIDStr == "" {
 		http.Error(w, "Post ID is required", http.StatusBadRequest)
@@ -517,7 +534,6 @@ func (ph *PostHandler) getPostByID(id int64) (*utils.Post, []utils.Comment, erro
 	}
 
 	post.PostTime = FormatTimeAgo(postTime.Local())
-	// Get comments
 	rows, err := utils.GlobalDB.Query(`
 	  SELECT c.id, c.user_id, c.content, c.comment_at, u.username, u.profile_pic, 
 	         (SELECT COUNT(*) FROM comment_reaction WHERE comment_id = c.id AND is_like = 1) as likes,
@@ -633,7 +649,6 @@ func (ph *PostHandler) handleReactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return updated counts as JSON
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]int{
@@ -666,7 +681,6 @@ func (ph *PostHandler) handleComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert comment
 	_, err = utils.GlobalDB.Exec(`
         INSERT INTO comments (post_id, user_id, content) 
         VALUES (?, ?, ?)`,
@@ -678,7 +692,6 @@ func (ph *PostHandler) handleComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update post comment count
 	_, err = utils.GlobalDB.Exec(`
         UPDATE posts SET comments = comments + 1 
         WHERE id = ?`, postID)

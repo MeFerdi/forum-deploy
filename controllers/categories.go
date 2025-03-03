@@ -27,30 +27,29 @@ func (ch *CategoryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	case "/category":
 		if r.Method == http.MethodGet {
-            categoryName := r.URL.Query().Get("name")
-            if categoryName == "" {
-                utils.RenderErrorPage(w, http.StatusBadRequest, utils.ErrInvalidForm)
-                return
-            }
+			categoryName := r.URL.Query().Get("name")
+			if categoryName == "" {
+				utils.RenderErrorPage(w, http.StatusBadRequest, utils.ErrInvalidForm)
+				return
+			}
 
-            // Check if category exists
-            var exists bool
-            err := utils.GlobalDB.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", 
-                categoryName).Scan(&exists)
-            if err != nil {
-                log.Printf("Error checking category existence: %v", err)
-                utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
-                return
-            }
-            if !exists {
-                utils.RenderErrorPage(w, http.StatusNotFound, "Category not found")
-                return
-            }
+			var exists bool
+			err := utils.GlobalDB.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)",
+				categoryName).Scan(&exists)
+			if err != nil {
+				log.Printf("Error checking category existence: %v", err)
+				utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
+				return
+			}
+			if !exists {
+				utils.RenderErrorPage(w, http.StatusNotFound, "Category not found")
+				return
+			}
 
-            ch.handleGetPostsByCategoryName(w, r, categoryName)
-        } else {
-            utils.RenderErrorPage(w, http.StatusMethodNotAllowed, utils.ErrMethodNotAllowed)
-        }
+			ch.handleGetPostsByCategoryName(w, r, categoryName)
+		} else {
+			utils.RenderErrorPage(w, http.StatusMethodNotAllowed, utils.ErrMethodNotAllowed)
+		}
 	default:
 		utils.RenderErrorPage(w, http.StatusNotFound, utils.ErrNotFound)
 	}
@@ -63,6 +62,29 @@ func (ch *CategoryHandler) checkAuthStatus(r *http.Request) bool {
 	}
 	_, err = utils.ValidateSession(utils.GlobalDB, cookie.Value)
 	return err == nil
+}
+
+func (ch *CategoryHandler) getAllUsers() ([]utils.User, error) {
+	rows, err := utils.GlobalDB.Query(`
+		SELECT id, username, profile_pic 
+		FROM users
+		ORDER BY username
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []utils.User
+	for rows.Next() {
+		var user utils.User
+		err := rows.Scan(&user.ID, &user.UserName, &user.ProfilePic)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
 }
 
 func (ch *CategoryHandler) handleGetCategories(w http.ResponseWriter, _ *http.Request) {
@@ -125,6 +147,13 @@ func (ch *CategoryHandler) handleGetPostsByCategoryName(w http.ResponseWriter, r
 		return
 	}
 
+	users, err := ch.getAllUsers()
+	if err != nil {
+		log.Printf("Error fetching users: %v", err)
+		utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
+
 	isLoggedIn := ch.checkAuthStatus(r)
 	var currentUserID string
 
@@ -137,10 +166,12 @@ func (ch *CategoryHandler) handleGetPostsByCategoryName(w http.ResponseWriter, r
 	data := struct {
 		IsLoggedIn    bool
 		Posts         []utils.Post
+		Users         []utils.User
 		CurrentUserID string
 	}{
 		IsLoggedIn:    isLoggedIn,
 		Posts:         posts,
+		Users:         users,
 		CurrentUserID: currentUserID,
 	}
 

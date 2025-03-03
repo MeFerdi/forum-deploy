@@ -23,6 +23,7 @@ type ProfileData struct {
 	IsLoggedIn   bool
 	IsOwnProfile bool
 	UserID       string
+	ErrorMessage string
 }
 
 func NewProfileHandler() *ProfileHandler {
@@ -54,7 +55,6 @@ func (ph *ProfileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Display profile
 	ph.displayUserProfile(w, targetUserID, currentUserID, isLoggedIn)
 }
 
@@ -67,11 +67,11 @@ func (ph *ProfileHandler) displayUserProfile(w http.ResponseWriter, targetUserID
     `, targetUserID).Scan(&profile.UserID, &profile.Username, &profile.Email, &profile.ProfilePic)
 	if err != nil {
 		if err == sql.ErrNoRows {
-utils.RenderErrorPage(w, http.StatusNotFound, utils.ErrNotFound)	
-		return
+			utils.RenderErrorPage(w, http.StatusNotFound, utils.ErrNotFound)
+			return
 		}
 		log.Printf("Error fetching profile: %v", err)
-		utils.RenderErrorPage(w, http.StatusNotFound, utils.ErrNotFound)	
+		utils.RenderErrorPage(w, http.StatusNotFound, utils.ErrNotFound)
 		return
 	}
 
@@ -81,7 +81,7 @@ utils.RenderErrorPage(w, http.StatusNotFound, utils.ErrNotFound)
 	tmpl, err := template.ParseFiles("templates/profile.html")
 	if err != nil {
 		log.Printf("Error parsing template: %v", err)
-		utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)	
+		utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
 
@@ -89,75 +89,100 @@ utils.RenderErrorPage(w, http.StatusNotFound, utils.ErrNotFound)
 }
 
 func (ph *ProfileHandler) handleProfileUpdate(w http.ResponseWriter, r *http.Request, userID string) {
-	// Set max upload size - 5MB
-	if err := r.ParseMultipartForm(5 << 20); err != nil {
-		log.Printf("Error parsing form: %v", err)
-		http.Error(w, "Error processing form", http.StatusBadRequest)
-		return
-	}
+    // Get current user profile data
+    var profile ProfileData
+    err := utils.GlobalDB.QueryRow(`
+        SELECT id, username, email, COALESCE(profile_pic, '') as profile_pic 
+        FROM users 
+        WHERE id = ?
+    `, userID).Scan(&profile.UserID, &profile.Username, &profile.Email, &profile.ProfilePic)
+    if err != nil {
+        log.Printf("Error fetching profile: %v", err)
+        utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
+        return
+    }
 
-	file, header, err := r.FormFile("profile_pic")
-if err != nil {
-    log.Printf("Error getting profile pic: %v", err)
-    utils.RenderErrorPage(w, http.StatusBadRequest, utils.ErrFileUpload)
-    return
-}
-defer file.Close()
+    profile.IsLoggedIn = true
+    profile.IsOwnProfile = true
 
-	// Validate file type
-	if !isValidImageType(header.Header.Get("Content-Type")) {
-		log.Printf("Invalid file type: %s", header.Header.Get("Content-Type"))
-		http.Error(w, "Invalid file type. Please upload an image.", http.StatusBadRequest)
-		return
-	}
+    tmpl, err := template.ParseFiles("templates/profile.html")
+    if err != nil {
+        log.Printf("Error parsing template: %v", err)
+        utils.RenderErrorPage(w, http.StatusInternalServerError, utils.ErrInternalServer)
+        return
+    }
 
-	// Get old profile pic path
-	var oldImagePath sql.NullString
-	err = utils.GlobalDB.QueryRow("SELECT profile_pic FROM users WHERE id = ?", userID).Scan(&oldImagePath)
-	if err != nil {
-		log.Printf("Error fetching old profile pic: %v", err)
-	}
+    // Check file size before processing
+    if err := r.ParseMultipartForm(20 << 20); err != nil {
+        profile.ErrorMessage = "File size too large. Maximum size is 20MB"
+        tmpl.Execute(w, profile)
+        return
+    }
 
-	// Process new image
-	imagePath, err := ph.imageHandler.ProcessImage(file, header)
-if err != nil {
-    log.Printf("Error processing image: %v", err)
-    utils.RenderErrorPage(w, http.StatusBadRequest, err.Error())
-    return
-}
+    file, header, err := r.FormFile("profile_pic")
+    if err != nil {
+        profile.ErrorMessage = "Error uploading image: " + err.Error()
+        tmpl.Execute(w, profile)
+        return
+    }
+    defer file.Close()
 
-	log.Printf("New image path: %s", imagePath)
+    // Validate file size explicitly
+    if header.Size > 20<<20 {
+        profile.ErrorMessage = "Image size must be less than 20MB"
+        tmpl.Execute(w, profile)
+        return
+    }
 
-	// Update database with new image path
-	result, err := utils.GlobalDB.Exec(`
+    // Validate file type
+    if !isValidImageType(header.Header.Get("Content-Type")) {
+        profile.ErrorMessage = "Invalid file type. Please upload an image (JPEG, PNG, GIF)"
+        tmpl.Execute(w, profile)
+        return
+    }
+
+    // Get old profile pic path
+    var oldImagePath sql.NullString
+    err = utils.GlobalDB.QueryRow("SELECT profile_pic FROM users WHERE id = ?", userID).Scan(&oldImagePath)
+    if err != nil {
+        profile.ErrorMessage = "Error retrieving old profile picture"
+        tmpl.Execute(w, profile)
+        return
+    }
+
+    // Process new image
+    imagePath, err := ph.imageHandler.ProcessImage(file, header)
+    if err != nil {
+        profile.ErrorMessage = "Error processing image: " + err.Error()
+        tmpl.Execute(w, profile)
+        return
+    }
+
+    // Update database with new image path
+    _, err = utils.GlobalDB.Exec(`
         UPDATE users 
         SET profile_pic = ? 
         WHERE id = ?
     `, imagePath, userID)
-	if err != nil {
-		log.Printf("Error updating profile pic in database: %v", err)
-		http.Error(w, "Error updating profile", http.StatusInternalServerError)
-		os.Remove(imagePath) // Clean up new image if database update fails
-		return
-	}
+    if err != nil {
+        // Clean up new image if database update fails
+        os.Remove(imagePath)
+        profile.ErrorMessage = "Error updating profile picture in database"
+        tmpl.Execute(w, profile)
+        return
+    }
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("Database update affected %d rows", rowsAffected)
+    // Delete old profile pic if it exists
+    if oldImagePath.Valid && oldImagePath.String != "" {
+        oldPath := filepath.Join("uploads", filepath.Base(oldImagePath.String))
+        if err := os.Remove(oldPath); err != nil {
+            log.Printf("Error removing old profile picture: %v", err)
+        }
+    }
 
-	// Delete old profile pic if it exists
-	if oldImagePath.Valid && oldImagePath.String != "" {
-		oldFilePath := strings.TrimPrefix(oldImagePath.String, "/static")
-		oldFilePath = filepath.Join("static", oldFilePath)
-		if err := os.Remove(oldFilePath); err != nil {
-			log.Printf("Error deleting old profile pic: %v", err)
-		}
-	}
-	// fmt.Println("userID: %s", userID)
-
-	// Redirect back to profile page with userID
-	http.Redirect(w, r, "/profile/"+userID, http.StatusSeeOther)
+    // Redirect back to profile page
+    http.Redirect(w, r, "/profile/"+userID, http.StatusSeeOther)
 }
-
 func isValidImageType(contentType string) bool {
 	validTypes := map[string]bool{
 		"image/jpeg": true,

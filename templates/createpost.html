@@ -14,9 +14,6 @@
                 <h1 class="logo">Forum</h1>
               </a>
             <div class="nav-right">
-                <button id="create-post-btn" class="btn btn-primary" onclick="window.location.href='/create'">
-                    <i class="fas fa-plus"></i> Create Post
-                </button>
                
                 {{if not .IsLoggedIn}}
                     <button class="btn btn-outline" onclick="window.location.href='/signin'">
@@ -90,8 +87,12 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-outline" onclick="window.location.href='/post'">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Post</button>
+                    <button onclick="window.history.back()" class="btn btn-primary">
+                        <i class="fas fa-x"></i> Cancel
+                    </button>                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i>Create Post
+                    </button>
                 </div>
             </form>
         </div>

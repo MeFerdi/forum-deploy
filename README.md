@@ -2,6 +2,9 @@
 
 A modern web forum built with Go that enables user communication through posts, comments, and reactions.
 
+## Project Objectives
+Registered enable user login using github or gmail
+
 ## Features
 
 - **User Authentication**
@@ -26,6 +29,10 @@ A modern web forum built with Go that enables user communication through posts, 
   - Category-based post filtering
   - View created posts
   - View liked posts
+  
+- **Image Upload Constraints**
+  - Maximum image size: 20 MB
+  - If an image exceeds 20 MB, an error message will inform the user that the image is too large
 
 ## Technology Stack
 
@@ -40,6 +47,30 @@ A modern web forum built with Go that enables user communication through posts, 
   - Responsive design
   - Modern UI/UX
 
+### Project Structure
+```bash
+forum-image-upload/
+│
+├── authentication/
+├── controllers/
+│   ├── categories.go
+│   ├── categories_test.go
+│   ├── filters.go
+│   ├── image_handler.go
+│   ├── post_handler.go
+│   ├── post_handler_test.go
+│   └── profile_handler.go
+├── static/
+├── templates/
+├── utils/
+├── Dockerfile
+├── README.md
+├── buildDocker.sh
+├── fly.toml
+├── go.mod
+├── go.sum
+└── main.go
+```
 ## Prerequisites
 
 - Go 1.19 or higher
@@ -164,24 +195,6 @@ The application uses SQLite with the following main tables:
 - CSRF protection
 - Input validation and sanitization
 - Secure cookie handling
-
-## Development
-
-### Project Structure
-```
-forum/
-├── main.go
-├──authentication/
-├── controllers/
-├── go.mod
-├── go.sum
-├── utils/
-├── static/
-├── templates/
-├── .gitignore
-├── forum.db
-└── README.md
-```
 
 ### Running Tests
 ```bash

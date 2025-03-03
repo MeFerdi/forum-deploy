@@ -26,12 +26,15 @@ func main() {
 	handlers.InitDB(db)
 	utils.InitSessionManager(utils.GlobalDB)
 
-	// Setup routes
+	http.HandleFunc("/auth/github", handlers.HandleGitHubLogin)
+	http.HandleFunc("/auth/github/callback", handlers.HandleGitHubCallback)
+	http.HandleFunc("/auth/google", handlers.HandleGoogleLogin)
+	http.HandleFunc("/auth/google/callback", handlers.HandleGoogleCallback)
 	http.HandleFunc("/signup", handlers.SignUpHandler)
 	http.HandleFunc("/signin", handlers.SignInHandler)
 	http.HandleFunc("/created", controllers.CreatedPosts)
 	http.HandleFunc("/liked", controllers.LikedPosts)
-
+	http.HandleFunc("/static/", handlers.ServeStatic)
 	http.HandleFunc("/signout", handlers.SignOutHandler(db))
 
 	// Initialize post handler
@@ -49,11 +52,11 @@ func main() {
 	http.Handle("/categories", categoryHandler)
 	http.Handle("/category", categoryHandler)
 
-	http.HandleFunc("/static/", handlers.ServeStatic)
+	notificationHandler := controllers.NewNotificationHandler()
+	http.Handle("/notifications", notificationHandler)
 
 	fmt.Println("Server opened at port 8000...http://localhost:8000/")
 
-	// Start server
 	err = http.ListenAndServe(":8000", nil)
 	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)

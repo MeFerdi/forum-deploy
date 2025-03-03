@@ -54,7 +54,7 @@ type Session struct {
 }
 
 type ErrorPageData struct {
-	Code int
+	Code    int
 	Message string
 }
 
@@ -62,4 +62,15 @@ type PageData struct {
 	IsLoggedIn    bool
 	Posts         []Post
 	CurrentUserID string
+	Users []User
+}
+
+type Notification struct {
+    ID                 int
+    Type              string    // "like", "dislike", "comment"
+    PostID            int       // ID of the affected post
+    ActorName         string    // Username of person who performed action
+    ActorProfilePic   sql.NullString // Profile picture of actor
+    CreatedAt         time.Time // When notification was created
+    CreatedAtFormatted string   // Formatted time string (e.g., "2 hours ago")
 }

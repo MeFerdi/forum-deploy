@@ -32,6 +32,13 @@ func InitDB(database *sql.DB) {
 }
 
 func SignUpHandler(w http.ResponseWriter, r *http.Request) {
+	//Prevent logged-in users from signing up again
+	_, err := r.Cookie("session_token")
+	if err == nil { 
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
 	if r.Method == "GET" {
 		tmpl, err := template.ParseFiles("templates/signup.html")
 		if err != nil {

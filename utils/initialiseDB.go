@@ -24,6 +24,7 @@ func InitialiseDB() (*sql.DB, error) {
             id TEXT PRIMARY KEY NOT NULL,
             email TEXT UNIQUE,
             username TEXT UNIQUE,
+            authoriser TEXT,
             password TEXT,
             profile_pic TEXT
         );
@@ -54,6 +55,25 @@ func InitialiseDB() (*sql.DB, error) {
     `)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create posts table: %v", err)
+	}
+
+    _, err = db.Exec(`
+    CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id INTEGER,
+        user_id TEXT,
+        content TEXT NOT NULL,
+        comment_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        likes INTEGER DEFAULT 0,
+        dislikes INTEGER DEFAULT 0,
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
+    CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+    `)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create comments table: %v", err)
 	}
 
 	// Create Reaction table
@@ -139,23 +159,61 @@ END;
 	}
 
 	_, err = db.Exec(`
-    CREATE TABLE IF NOT EXISTS comments (
+    CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        post_id INTEGER,
-        user_id TEXT,
-        content TEXT NOT NULL,
-        comment_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        likes INTEGER DEFAULT 0,
-        dislikes INTEGER DEFAULT 0,
-        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        user_id TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        post_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (actor_id) REFERENCES users(id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
     );
-    CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
-    CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
-    `)
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+`)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create comments table: %v", err)
+		return nil, fmt.Errorf("failed to create notifications table: %v", err)
 	}
+
+	// Add these triggers after notifications table creation
+	_, err = db.Exec(`
+CREATE TRIGGER IF NOT EXISTS AfterPostReaction
+AFTER INSERT ON reaction
+BEGIN
+    INSERT INTO notifications (user_id, actor_id, post_id, type)
+    SELECT 
+        p.user_id,     -- Post owner (receiver of notification)
+        NEW.user_id,   -- Person who reacted (actor)
+        NEW.post_id,   -- Post that was reacted to
+        CASE 
+            WHEN NEW.like = 1 THEN 'like'
+            ELSE 'dislike'
+        END
+    FROM posts p
+    WHERE p.id = NEW.post_id
+    AND p.user_id != NEW.user_id; -- Don't notify if user reacts to their own post
+END;
+
+CREATE TRIGGER IF NOT EXISTS AfterPostComment
+AFTER INSERT ON comments
+BEGIN
+    INSERT INTO notifications (user_id, actor_id, post_id, type)
+    SELECT 
+        p.user_id,     -- Post owner (receiver of notification)
+        NEW.user_id,   -- Person who commented (actor)
+        NEW.post_id,   -- Post that was commented on
+        'comment'
+    FROM posts p
+    WHERE p.id = NEW.post_id
+    AND p.user_id != NEW.user_id; -- Don't notify if user comments on their own post
+END;
+`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create triggers: %v", err)
+	}
+
+	
 	// Create Comment Reaction table
 	_, err = db.Exec(`
     CREATE TABLE IF NOT EXISTS comment_reaction (

@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>Sign In</title>
     <style>
         * {
@@ -25,9 +27,17 @@
         }
 
         @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         .auth-wrapper {
@@ -152,59 +162,117 @@
             font-size: 0.9rem;
             transition: all 0.3s ease;
         }
+
         .regidter-text:hover {
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
+
+        .google-signin {
+            margin-top: 1.5rem;
+            justify-content: space-between;
+            display: flex;
+        }
+
+        .google-signin-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem;
+            background: none;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .google-signin-btn:hover {
+            background: black;
+            transform: translateY(-2px);
+        }
+
+        .google-signin-btn img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .github-signin-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background: none;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .github-signin-btn:hover {
+            background: black;
+            transform: translateY(-2px);
+        }
+
+        .github-signin-btn img {
+            width: 20px;
+            height: 20px;
+        }
     </style>
 </head>
+
 <body>
-        <div class="auth-wrapper">
-            <h1 class="auth-title">Sign In</h1>
-            
-            {{if .GeneralError }}
-            <div class="global-error">
-                {{.GeneralError}}
-            </div>
-            {{end}}
-            <form action="/signin" method="POST" class="auth-form">
-                <div class="input-block">
-                    <label for="username" class="input-label">Username</label>
-                    <input type="text" 
-                           name="username" 
-                           id="username" 
-                           class="input-field"
-                           placeholder="Input your username"
-                           value="{{.Username}}" required>
-                </div>
-    
-                <div class="input-block">
-                    <label for="password" class="input-label">Password</label>
-                    <input type="password" 
-                           name="password" 
-                           id="password" 
-                           placeholder="Input your password"
-                           class="input-field" required>
-                </div>
-                <div class="visibility-toggle">
-                    <input type="checkbox" id="show-password">
-                    <label for="show-password">Show password</label>
-                </div>
-    
-                <button type="submit" class="submit-btn">Sign In</button>
-            </form>
-    
-            <div class="register-lin">
-                <a href="/signup" class="login-text">Don't have an account? Sign up</a>
-            </div>
+    <div class="auth-wrapper">
+        <h1 class="auth-title">Sign In</h1>
+
+        {{if .GeneralError }}
+        <div class="global-error">
+            {{.GeneralError}}
         </div>
-        <script>
-            document.getElementById('show-password').addEventListener('change', function() {
-                const passwordInput = document.getElementById('password');
-                const confirmPasswordInput = document.getElementById('confirm-password');
-                const type = this.checked ? 'text' : 'password';
-                passwordInput.type = type;
-                confirmPasswordInput.type = type;
-            });
-        </script>
+        {{end}}
+        <form action="/signin" method="POST" class="auth-form">
+            <div class="input-block">
+                <label for="username" class="input-label">Username</label>
+                <input type="text" name="username" id="username" class="input-field" placeholder="Input your username"
+                    value="{{.Username}}" required>
+            </div>
+
+            <div class="input-block">
+                <label for="password" class="input-label">Password</label>
+                <input type="password" name="password" id="password" placeholder="Input your password"
+                    class="input-field" required>
+            </div>
+            <div class="visibility-toggle">
+                <input type="checkbox" id="show-password">
+                <label for="show-password">Show password</label>
+            </div>
+
+            <button type="submit" class="submit-btn">Sign In</button>
+        </form>
+        <div class="google-signin">
+            <a href="/auth/google" class="google-signin-btn">
+                <i class="fab fa-google"></i>
+                Sign in with Google
+            </a>
+            <a href="/auth/github" class="github-signin-btn">
+                <i class="fab fa-github"></i>
+                Sign in with GitHub
+            </a>
+        </div>
+
+        <div class="register-lin">
+            <a href="/signup" class="login-text">Don't have an account? Sign up</a>
+        </div>
+    </div>
+    <script>
+        document.getElementById('show-password').addEventListener('change', function () {
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirm-password');
+            const type = this.checked ? 'text' : 'password';
+            passwordInput.type = type;
+            confirmPasswordInput.type = type;
+        });
+    </script>
 </body>
+
 </html>
